@@ -1,6 +1,6 @@
 ### Blue Sky Scraper
 
-A lightweight, modular FastAPI service for collecting and analyzing social and institutional data across multiple platforms. It starts with Bluesky, and is extendable to Twitter/X, YouTube, News, and more.
+A lightweight, modular FastAPI service for collecting and analyzing social and institutional data across Bluesky.
 
 ##### Overview
 
@@ -8,10 +8,7 @@ The Social Data Intelligence API enables you to collect text-based data from pub
 
 It’s built for researchers, analysts, and developers who need quick access to social discourse data for analytics, monitoring, or policy intelligence.
 
-##### Key Features
-- 🔍 Multi-Platform Ready — start with Bluesky, easily extend to other APIs.
-- ⏳ Smart Pagination & Rate Limiting — respects API constraints.
-- 🧹 Deduplication & Incremental Saving — prevents data loss on long runs.
-- 📦 Unified Schema — standard structure for merging data from multiple sources.
-- 🧱 Modular Design — import, modify, or deploy components independently.
-- ⚙️ FastAPI Powered — deploy as a microservice or standalone backend.
+The system supports:
+- keyword searches for profiles and 'skeets' 
+- smart pagination & rate Limiting backed by deduplication & incremental Saving
+- modular and deployment as a microservice or standalone backend via FastAPI
