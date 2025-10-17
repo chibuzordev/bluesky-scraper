@@ -10,8 +10,18 @@ def root():
 
 @app.get("/scrape")
 def scrape(
-    keyword: str = Query(..., description="Keyword to search for"),
-    limit: int = Query(50, ge=10, le=500, description="Number of posts to fetch")
+    keyword: str = Query(
+        ...,
+        description="The keyword or phrase to search for on Bluesky.",
+        example="AgriTech",
+    ),
+    limit: int = Query(
+        50,
+        ge=10,
+        le=500,
+        description="Number of posts to fetch (10–500).",
+        example=50,
+    ),
 ):
     """
     Trigger a Bluesky scrape by keyword and return the post data.
@@ -36,3 +46,4 @@ def scrape(
         },
         status_code=200
     )
+
