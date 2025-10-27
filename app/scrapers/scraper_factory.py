@@ -1,5 +1,5 @@
-from scraper_bluesky import scrape_bluesky
-# from scraper_reddit import scrape_reddit   # (coming soon)
+from app.scrapers.scraper_bluesky import scrape_bluesky
+# from app.scrapers.scraper_reddit import scrape_reddit
 
 def get_scraper(platform: str):
     """
