@@ -3,9 +3,8 @@ import os
 import sqlite3
 import json
 
-CACHE_DIR = "cache"
+CACHE_DIR = "app/cache/cached_files"
 os.makedirs(CACHE_DIR, exist_ok=True)
-
 
 def _cache_path(keyword, cache_type, platform):
     base_name = f"{platform}_{keyword.replace(' ', '_').lower()}"
