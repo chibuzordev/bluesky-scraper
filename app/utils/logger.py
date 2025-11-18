@@ -21,3 +21,4 @@ logger.addHandler(console_handler)
 def get_logger():
     """Return a configured logger instance."""
     return logger
+

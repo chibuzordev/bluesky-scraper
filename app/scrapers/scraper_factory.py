@@ -13,3 +13,4 @@ def get_scraper(platform: str):
     }
 
     return scrapers.get(platform)
+

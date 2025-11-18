@@ -44,3 +44,4 @@ def load_from_cache(keyword, cache_type="sqlite", platform="bluesky"):
             return df
     except Exception:
         return None
+
