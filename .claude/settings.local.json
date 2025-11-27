@@ -1,11 +1,14 @@
 {
-  
   "env": {
     "includeCoAuthoredBy": "false"
   },
   "permissions": {
     "allow": [
-      "Bash(python -m py_compile:*)"
+      "Bash(python -m py_compile:*)",
+      "Bash(dir:*)",
+      "Bash(python -m pip:*)",
+      "Bash(findstr:*)",
+      "Bash(py:*)"
     ],
     "deny": [],
     "ask": []
