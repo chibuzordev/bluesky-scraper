@@ -1,1 +1,18 @@
 .env
+.env.local
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+
+# Cache directories
+app/cache/cached_files/
+app/cache/checkpoints/
