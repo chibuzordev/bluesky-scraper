@@ -76,7 +76,7 @@ def _scrape_platform(platform: str, keyword: str, limit: int, cache: str):
 @router.get("/bluesky")
 def scrape_bluesky(
     keyword: str = Query(..., description="Keyword or phrase to search on Bluesky", example="AgriTech"),
-    limit: int = Query(50, ge=10, le=500, description="Number of posts to fetch (10–500)", example=50),
+    limit: int = Query(50, ge=10, le=5000, description="Number of posts to fetch (10–5000)", example=50),
     cache: str = Query("sqlite", description="Cache type: 'csv', 'json', or 'sqlite'", example="sqlite"),
 ):
     """
@@ -88,7 +88,7 @@ def scrape_bluesky(
 @router.get("/reddit")
 def scrape_reddit(
     keyword: str = Query(..., description="Keyword or phrase to search on Reddit", example="technology"),
-    limit: int = Query(50, ge=10, le=500, description="Number of posts to fetch (10–500)", example=50),
+    limit: int = Query(50, ge=10, le=5000, description="Number of posts to fetch (10–5000)", example=50),
     cache: str = Query("sqlite", description="Cache type: 'csv', 'json', or 'sqlite'", example="sqlite"),
 ):
     """
@@ -112,7 +112,7 @@ def scrape_twitter(
 @router.get("/facebook")
 def scrape_facebook(
     keyword: str = Query(..., description="Keyword or phrase to search on Facebook", example="climate"),
-    limit: int = Query(50, ge=10, le=500, description="Number of posts to fetch (10–500)", example=50),
+    limit: int = Query(50, ge=10, le=5000, description="Number of posts to fetch (10–5000)", example=50),
     cache: str = Query("sqlite", description="Cache type: 'csv', 'json', or 'sqlite'", example="sqlite"),
 ):
     """
