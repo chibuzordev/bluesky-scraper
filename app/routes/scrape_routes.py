@@ -1,8 +1,10 @@
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Body
 from fastapi.responses import JSONResponse, FileResponse
 from app.scrapers.scraper_factory import get_scraper
-from app.cache.cache_manager import save_to_cache, load_from_cache
+from app.cache.cache_manager import save_to_cache, load_from_cache, save_checkpoint, load_checkpoint, merge_all_caches
+from typing import List
 import os
+import time
 
 router = APIRouter(prefix="/scrape", tags=["Scraping"])
 
@@ -131,6 +133,149 @@ def scrape_news(
     Scrape news articles, apply caching, and return results.
     """
     return _scrape_platform("news", keyword, limit, cache)
+
+
+@router.post("/batch")
+def scrape_batch(
+    platform: str = Query("bluesky", description="Platform to scrape (bluesky, reddit, twitter, facebook, news)", example="bluesky"),
+    keywords: List[str] = Body(..., description="List of keywords to scrape", example=["FATF", "Counter-terrorism", "Islamic Relief"]),
+    limit: int = Query(50, ge=10, le=5000, description="Number of posts per keyword (10–5000)", example=50),
+    cache: str = Query("csv", description="Cache type: 'csv', 'json', or 'sqlite'", example="csv"),
+    pause_between_keywords: int = Query(2, ge=0, le=60, description="Seconds to pause between keywords", example=2),
+    merge_results: bool = Query(False, description="Merge all results into a single dataset", example=False),
+    session_name: str = Query("batch_scrape", description="Session name for checkpointing", example="batch_scrape")
+):
+    """
+    Scrape multiple keywords in batch mode with checkpointing and incremental saving.
+
+    Features:
+    - Scrapes multiple keywords sequentially
+    - Saves each keyword to cache incrementally
+    - Checkpointing: can resume if interrupted
+    - Optional final merge of all results
+
+    Request body example:
+    ```json
+    {
+        "keywords": [
+            "Counter-terrorism",
+            "FATF",
+            "Islamic Relief Worldwide",
+            "Muslim Charities Forum"
+        ]
+    }
+    ```
+
+    Returns:
+    - Summary of scraped keywords
+    - Total posts collected
+    - Failed keywords (if any)
+    - Download link for merged dataset (if merge_results=true)
+    """
+    from app.utils.logger import get_logger
+    logger = get_logger()
+
+    # Validate platform
+    scraper = get_scraper(platform)
+    if not scraper:
+        return JSONResponse({"error": f"No scraper found for {platform}"}, status_code=404)
+
+    # Load checkpoint if exists
+    checkpoint = load_checkpoint(session_name, platform)
+    completed_keywords = checkpoint.get('completed_keywords', []) if checkpoint else []
+
+    # Filter out already completed keywords
+    remaining_keywords = [kw for kw in keywords if kw not in completed_keywords]
+
+    logger.info(f"Batch scrape: {len(keywords)} total keywords, {len(completed_keywords)} already completed, {len(remaining_keywords)} remaining")
+
+    results = {
+        "session_name": session_name,
+        "platform": platform,
+        "total_keywords": len(keywords),
+        "already_completed": len(completed_keywords),
+        "newly_scraped": 0,
+        "failed": 0,
+        "total_posts": 0,
+        "results_per_keyword": [],
+        "failed_keywords": [],
+        "cache_type": cache
+    }
+
+    # Scrape each keyword
+    for idx, keyword in enumerate(remaining_keywords, start=1):
+        logger.info(f"[{idx}/{len(remaining_keywords)}] Scraping keyword: '{keyword}'")
+
+        try:
+            # Check if already cached
+            cached_df = load_from_cache(keyword, cache, platform)
+            if cached_df is not None and not cached_df.empty:
+                logger.info(f"Loaded {len(cached_df)} posts from cache for '{keyword}'")
+                post_count = len(cached_df)
+            else:
+                # Scrape fresh data
+                df = scraper(keyword, limit)
+                post_count = len(df) if not df.empty else 0
+
+                if not df.empty:
+                    # Save to cache
+                    save_to_cache(df, keyword, cache, platform)
+                    logger.info(f"Scraped and cached {post_count} posts for '{keyword}'")
+
+            results["newly_scraped"] += 1
+            results["total_posts"] += post_count
+            results["results_per_keyword"].append({
+                "keyword": keyword,
+                "posts": post_count,
+                "status": "success"
+            })
+
+            # Update checkpoint
+            completed_keywords.append(keyword)
+            save_checkpoint(session_name, completed_keywords, platform, {
+                "total_keywords": len(keywords),
+                "completed": len(completed_keywords),
+                "total_posts": results["total_posts"]
+            })
+
+            # Pause between keywords
+            if idx < len(remaining_keywords) and pause_between_keywords > 0:
+                logger.info(f"Pausing {pause_between_keywords}s before next keyword...")
+                time.sleep(pause_between_keywords)
+
+        except Exception as e:
+            logger.error(f"Failed to scrape '{keyword}': {e}")
+            results["failed"] += 1
+            results["failed_keywords"].append(keyword)
+            results["results_per_keyword"].append({
+                "keyword": keyword,
+                "posts": 0,
+                "status": "failed",
+                "error": str(e)
+            })
+
+    # Optionally merge all results
+    if merge_results and results["newly_scraped"] > 0:
+        output_file = f"{platform}_{session_name}_merged.{cache}"
+        logger.info(f"Merging all results into {output_file}")
+
+        try:
+            merged_df = merge_all_caches(
+                keywords=completed_keywords,
+                output_file=output_file,
+                cache_type=cache,
+                platform=platform
+            )
+
+            if merged_df is not None:
+                results["merged_file"] = output_file
+                results["merged_posts"] = len(merged_df)
+                results["download_url"] = f"/scrape/export?platform={platform}&format={cache}"
+        except Exception as e:
+            logger.error(f"Failed to merge results: {e}")
+            results["merge_error"] = str(e)
+
+    return JSONResponse(results, status_code=200)
 
 
 @router.get("/export")
